@@ -1,0 +1,9 @@
+pyinstaller
+pytube
+PyQt6
+yt-dlp
+transformers
+torch
+openai-whisper
+torchvision
+torchaudio
