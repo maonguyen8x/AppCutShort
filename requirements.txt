@@ -7,3 +7,6 @@ torch
 openai-whisper
 torchvision
 torchaudio
+pysrt
+Pillow
+requests

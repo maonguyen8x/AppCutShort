@@ -6,53 +6,62 @@ from yt_dlp import YoutubeDL
 logging.basicConfig(level=logging.DEBUG, filename='appcutshort.log', filemode='a',
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-def get_youtube_stream_url(url):
-    # Get the direct streaming URL from YouTube without downloading
-    ydl_opts = {
-        'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]',  # Try 720p first
-        'noplaylist': True,
-        'quiet': True,
-    }
+def get_thumbnail_url(video_url):
+    """
+    Extract the thumbnail URL from a YouTube video URL using yt-dlp.
+
+    Args:
+        video_url (str): The YouTube video URL.
+
+    Returns:
+        str: The URL of the video's thumbnail, or None if extraction fails.
+    """
     try:
+        logging.info(f"Extracting thumbnail URL for: {video_url}")
+        ydl_opts = {
+            'skip_download': True,  # Do not download the video
+            'quiet': True,         # Suppress yt-dlp output
+        }
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if 'url' not in info:
-                # Fallback to best available format
-                ydl_opts['format'] = 'best'
-                with YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=False)
-            video_url = info.get('url')
-            if video_url:
-                logging.info(f"Retrieved streaming URL: {video_url}")
-                return video_url
+            info = ydl.extract_info(video_url, download=False)
+            thumbnail_url = info.get('thumbnail')
+            if thumbnail_url:
+                logging.info(f"Thumbnail URL extracted: {thumbnail_url}")
+                return thumbnail_url
             else:
-                logging.error("No stream URL found in video info")
+                logging.error("No thumbnail URL found in video info")
                 return None
     except Exception as e:
-        logging.error(f"Error getting YouTube stream URL: {str(e)}")
+        logging.error(f"Error extracting thumbnail URL: {str(e)}")
         return None
 
-def download_youtube_video(url, thumbnail_only=False):
-    # Download video or thumbnail to local storage (used for export)
-    output_path = os.path.join('temp', 'downloaded_video.mp4')
-    thumbnail_path = os.path.join('temp', 'thumbnail.jpg')
-    ydl_opts = {
-        'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
-        'outtmpl': output_path,
-        'merge_output_format': 'mp4',
-        'writethumbnail': True,
-        'skip_download': thumbnail_only,
-    }
+def download_youtube_video(video_url, output_path):
+    """
+    Download a YouTube video using yt-dlp.
+
+    Args:
+        video_url (str): The YouTube video URL.
+        output_path (str): The path to save the downloaded video.
+
+    Returns:
+        bool: True if download is successful, False otherwise.
+    """
     try:
+        logging.info(f"Downloading video from: {video_url}")
+        ydl_opts = {
+            'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
+            'outtmpl': output_path,
+            'merge_output_format': 'mp4',
+            'quiet': True,
+        }
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=not thumbnail_only)
-            if thumbnail_only:
-                thumbnail_url = info.get('thumbnail')
-                if thumbnail_url:
-                    with YoutubeDL({'outtmpl': thumbnail_path}) as ydl_thumb:
-                        ydl_thumb.download([thumbnail_url])
-                return thumbnail_path if os.path.exists(thumbnail_path) else None
-            return output_path if os.path.exists(output_path) else None
+            ydl.download([video_url])
+        if os.path.exists(output_path):
+            logging.info(f"Video downloaded successfully to: {output_path}")
+            return True
+        else:
+            logging.error("Downloaded video file not found after download")
+            return False
     except Exception as e:
-        logging.error(f"Error downloading video: {e}")
-        return None
+        logging.error(f"Error downloading video: {str(e)}")
+        return False
