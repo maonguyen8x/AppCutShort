@@ -10,3 +10,8 @@ torchaudio
 pysrt
 Pillow
 requests
+pydub
+numpy
+matplotlib
+PyQt6==6.5.0
+yt-dlp==2023.7.6

@@ -1,17 +1,11 @@
 import os
-import logging
-import requests
+import urllib.request
 from PyQt6.QtCore import QThread, pyqtSignal
 from src.utils.youtube_downloader import get_thumbnail_url
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG, filename='appcutshort.log', filemode='a',
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
 class ThumbnailThread(QThread):
-    progress = pyqtSignal(str)
     finished = pyqtSignal(str)
-    error = pyqtSignal(str)
+    progress = pyqtSignal(str)
 
     def __init__(self, url):
         super().__init__()
@@ -20,33 +14,13 @@ class ThumbnailThread(QThread):
 
     def run(self):
         try:
-            # Ensure temp directory exists
-            os.makedirs('temp', exist_ok=True)
-
-            # Get thumbnail URL
-            self.progress.emit("Fetching thumbnail URL...")
             thumbnail_url = get_thumbnail_url(self.url)
             if not thumbnail_url:
-                self.error.emit("Failed to fetch thumbnail URL")
+                self.progress.emit("Failed to fetch thumbnail URL")
                 return
 
-            # Download the thumbnail
-            self.progress.emit("Downloading thumbnail...")
-            response = requests.get(thumbnail_url, stream=True)
-            if response.status_code != 200:
-                self.error.emit("Failed to download thumbnail")
-                return
-
-            # Save the thumbnail to a file
-            with open(self.thumbnail_path, 'wb') as f:
-                for chunk in response.iter_content(1024):
-                    if chunk:
-                        f.write(chunk)
-
-            if os.path.exists(self.thumbnail_path):
-                self.finished.emit(self.thumbnail_path)
-            else:
-                self.error.emit("Thumbnail file not found after download")
+            os.makedirs(os.path.dirname(self.thumbnail_path), exist_ok=True)
+            urllib.request.urlretrieve(thumbnail_url, self.thumbnail_path)
+            self.finished.emit(self.thumbnail_path)
         except Exception as e:
-            logging.error(f"Error in ThumbnailThread: {str(e)}")
-            self.error.emit(f"Error downloading thumbnail: {str(e)}")
+            self.progress.emit(f"Error loading thumbnail: {str(e)}")
